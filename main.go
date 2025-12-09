@@ -4,18 +4,18 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
+	"strings"
 )
 
 type Bundler struct {
-	indexFile *os.File
-	jsFiles   []*os.File
+	indexPath string
+	jsPaths   []string
 }
 
-func (bundler *Bundler) iterateFolder(inputSrc string, indexName string, pathAcc string) {
+func (bundler *Bundler) iterateFolder(dir string, indexName string) {
 
-	var path = pathAcc + inputSrc
-
-	var inputFolder, err = os.ReadDir(path)
+	var inputFolder, err = os.ReadDir(dir)
 
 	if err != nil {
 		log.Fatal("ERROR (19):", err)
@@ -23,34 +23,21 @@ func (bundler *Bundler) iterateFolder(inputSrc string, indexName string, pathAcc
 	}
 
 	for _, entry := range inputFolder {
+
+		full := filepath.Join(dir, entry.Name())
+
 		if entry.IsDir() {
-			bundler.iterateFolder(entry.Name(), indexName, path+"/")
+			bundler.iterateFolder(full, indexName)
+			continue
 		}
 
-		if entry.Name() == indexName {
-			if bundler.indexFile != nil {
-				continue
-			}
-
-			var file, err = os.Open(inputSrc + "/" + entry.Name())
-			defer file.Close()
-
-			if err != nil {
-				log.Fatal("ERROR (36):", err)
-			}
-
-			bundler.indexFile = file
+		if entry.Name() == indexName && bundler.indexPath == "" {
+			bundler.indexPath = full
+			continue
 		}
 
-		if entry.Name()[(len(entry.Name())-3):] == ".js" {
-			var file, err = os.Open(path + "/" + entry.Name())
-			defer file.Close()
-
-			if err != nil {
-				log.Fatal("ERROR (47):", err)
-			}
-
-			bundler.jsFiles = append(bundler.jsFiles, file)
+		if strings.HasSuffix(entry.Name(), ".js") {
+			bundler.jsPaths = append(bundler.jsPaths, full)
 		}
 
 	}
@@ -58,10 +45,10 @@ func (bundler *Bundler) iterateFolder(inputSrc string, indexName string, pathAcc
 
 func (bundler *Bundler) print() {
 	fmt.Printf("Index HTML File: \n")
-	fmt.Printf("    %s \n", bundler.indexFile.Name())
+	fmt.Printf("    %s \n", bundler.indexPath)
 	fmt.Printf("JS Files: \n")
-	for idx, entry := range bundler.jsFiles {
-		fmt.Printf("    %d:  %s\n", idx, entry.Name())
+	for idx, entry := range bundler.jsPaths {
+		fmt.Printf("    %d:  %s\n", idx, entry)
 	}
 }
 
@@ -73,10 +60,10 @@ func main() {
 	const indexName = "index.html"
 
 	var bundler = Bundler{
-		indexFile: nil,
+		indexPath: "",
 	}
 
-	bundler.iterateFolder(inputSrc, indexName, "")
+	bundler.iterateFolder(inputSrc, indexName)
 
 	bundler.print()
 
