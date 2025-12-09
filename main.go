@@ -18,8 +18,7 @@ func (bundler *Bundler) iterateFolder(dir string, indexName string) {
 	var inputFolder, err = os.ReadDir(dir)
 
 	if err != nil {
-		log.Fatal("ERROR (19):", err)
-
+		log.Fatal("ERROR (read iterateFolder):", err)
 	}
 
 	for _, entry := range inputFolder {
